@@ -1,16 +1,18 @@
 from rest_framework import status, viewsets
-from rest_framework.viewsets import ModelViewSet
+from rest_framework.viewsets import ModelViewSet, GenericViewSet
 from rest_framework.response import Response
 from rest_framework.decorators import api_view
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.pagination import PageNumberPagination
+from rest_framework.mixins import CreateModelMixin, RetrieveModelMixin, DestroyModelMixin
 from rest_framework.generics import ListCreateAPIView, RetrieveUpdateDestroyAPIView
 from .serializers import (ProductSerializer, CollectionSerializer, CreateProductSerializer,
-                          ReviewSerializer, CreateReviewSerializer, CartSerializer, CartItemSerializer, AddToCartSerializer)
-from .models import Product, Collection, Review, Cart, CartItem
+                          ReviewSerializer, CreateReviewSerializer, CartSerializer, CartItemSerializer,
+                          AddToCartSerializer, OrderSerializer, CreateOrderSerializer, CreateCartSerializer, CartUpdateSerializer)
+from .models import Product, Collection, Review, Cart, CartItem, Order
 from .filter import ProductFilter
 from .pagination import DefaultPageNumber
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, IsAdminUser
 
 
 # class ProductList(ListCreateAPIView):
@@ -28,7 +30,7 @@ class ProductViewSet(ModelViewSet):
     filter_backends = [DjangoFilterBackend]
     filter_class = ProductFilter
     pagination_class = DefaultPageNumber
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAdminUser]
 
 class CartList(ListCreateAPIView):
     queryset = Cart.objects.all()
@@ -44,14 +46,14 @@ class CartList(ListCreateAPIView):
 #     serializer_class = ProductSerializer
 
 
-class CollectionViewSet(ModelViewSet):
-    queryset = Collection.objects.all()
-    serializer_class = CollectionSerializer
-    pagination_class = DefaultPageNumber
+# class CollectionViewSet(ModelViewSet):
+#     queryset = Collection.objects.all()
+#     serializer_class = CollectionSerializer
+#     pagination_class = DefaultPageNumber
 
 
-class ReviewViewSet(viewsets.ModelViewSet):
-    queryset = Review.objects.all()
+
+class ReviewViewSet(ModelViewSet):
 
     def get_queryset(self):
         return Review.objects.filter(product_id=self.kwargs['product_pk'])
@@ -78,9 +80,16 @@ class CollectionViewSet(ModelViewSet):
     serializer_class = CollectionSerializer
 
 
-class CartViewSet(ModelViewSet):
+
+class CartViewSet(CreateModelMixin, RetrieveModelMixin, DestroyModelMixin, GenericViewSet):
     queryset = Cart.objects.prefetch_related('item__product').all()
-    serializer_class = CartSerializer
+
+    def get_serializer_class(self):
+        if self.request.method == 'GET':
+            return CartSerializer
+        elif self.request.method == 'POST':
+            return CreateCartSerializer
+        return CreateCartSerializer
 
 
 
@@ -99,6 +108,29 @@ class CartItemViewSet(ModelViewSet):
 
     def get_serializer_context(self):
         return {'cart_id': self.kwargs['cart_pk']}
+
+
+
+
+class OrderViewSet(ModelViewSet):
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return Order.objects.filter(customer_id=self.request.user.id)
+
+    def get_serializer_class(self):
+        if self.request.method == 'POST':
+            return CreateOrderSerializer
+        return CreateOrderSerializer
+
+    def get_serializer_context(self):
+        return {'user_id': self.request.user.id}
+
+
+
+
+
+
 
 
 # @api_view()

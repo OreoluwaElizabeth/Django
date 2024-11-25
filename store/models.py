@@ -1,7 +1,7 @@
 from django.db import models
-from uuid import uuid4
+#from uuid import uuid4
 from django.conf import settings
-from django.core.validators import MinValueValidator, MaxValueValidator
+#from django.core.validators import MinValueValidator, MaxValueValidator
 
 
 class Collection(models.Model):
@@ -38,9 +38,9 @@ class Cart(models.Model):
     created_at = models.DateTimeField(auto_now=True)
 
 class CartItem(models.Model):
-    cart = models.ForeignKey(Cart, on_delete=models.CASCADE)
+    cart = models.ForeignKey(Cart, on_delete=models.CASCADE, related_name='items')
     product = models.ForeignKey(Product, on_delete=models.CASCADE)
-    quantity = models.IntegerField(validators=[MinValueValidator(1), MaxValueValidator(10)])
+    quantity = models.PositiveSmallIntegerField()
 
 
 class Order(models.Model):
@@ -55,7 +55,7 @@ class Order(models.Model):
 
 
 class OrderItem(models.Model):
-    order = models.ForeignKey(Order, on_delete=models.PROTECT)
+    order = models.ForeignKey(Order, on_delete=models.PROTECT, related_name='order_item')
     product = models.ForeignKey(Product, on_delete=models.CASCADE)
     quantity = models.PositiveIntegerField()
     unit_price = models.DecimalField(max_digits=6, decimal_places=2)
